@@ -1,14 +1,33 @@
 import { useState, useRef, useEffect } from 'react';
 
 function App() {
-  const [pairs, setPairs] = useState([]);
-  const [instruction, setInstruction] = useState('');
-  const [output, setOutput] = useState('');
+  const [pairs, setPairs] = useState(() => {
+    const saved = localStorage.getItem('lora_dataset_pairs');
+    try { return saved ? JSON.parse(saved) : []; } catch { return []; }
+  });
+  const [instruction, setInstruction] = useState(() => {
+    return localStorage.getItem('lora_dataset_instruction') || '';
+  });
+  const [output, setOutput] = useState(() => {
+    return localStorage.getItem('lora_dataset_output') || '';
+  });
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState('');
   const [syntaxError, setSyntaxError] = useState(false);
   const [copied, setCopied] = useState(false);
   const editRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem('lora_dataset_pairs', JSON.stringify(pairs));
+  }, [pairs]);
+
+  useEffect(() => {
+    localStorage.setItem('lora_dataset_instruction', instruction);
+  }, [instruction]);
+
+  useEffect(() => {
+    localStorage.setItem('lora_dataset_output', output);
+  }, [output]);
 
   const handleAdd = (e) => {
     e.preventDefault();

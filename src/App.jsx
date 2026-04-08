@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { supabase } from './lib/supabase';
 
 function App() {
   const [pairs, setPairs] = useState(() => {
@@ -16,6 +17,9 @@ function App() {
   const [syntaxError, setSyntaxError] = useState(false);
   const [copied, setCopied] = useState(false);
   const [wrapLines, setWrapLines] = useState(true);
+  const [saveCode, setSaveCode] = useState('');
+  const [isCloudSaving, setIsCloudSaving] = useState(false);
+  const [isCloudLoading, setIsCloudLoading] = useState(false);
   const editRef = useRef(null);
 
   useEffect(() => {
@@ -67,6 +71,77 @@ function App() {
     navigator.clipboard.writeText(getJsonlText());
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
+  };
+
+  const generateSaveCode = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  };
+
+  const handleCloudSave = async () => {
+    if (pairs.length === 0) {
+      alert("Nothing to save!");
+      return;
+    }
+    setIsCloudSaving(true);
+    try {
+      let code = saveCode.trim() || generateSaveCode();
+      if (!saveCode.trim()) {
+        setSaveCode(code);
+      }
+      
+      const { data: existing } = await supabase
+        .from('datasets')
+        .select('*')
+        .eq('save_code', code)
+        .single();
+        
+      if (existing) {
+        const { error } = await supabase
+          .from('datasets')
+          .update({ pairs })
+          .eq('save_code', code);
+        if (error) throw error;
+        alert(`Saved successfully to cloud code: ${code}`);
+      } else {
+        const { error } = await supabase
+          .from('datasets')
+          .insert([{ save_code: code, pairs }]);
+        if (error) throw error;
+        alert(`Created new cloud save with code: ${code}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Cloud save failed.");
+    } finally {
+      setIsCloudSaving(false);
+    }
+  };
+
+  const handleCloudLoad = async () => {
+    const code = prompt("Enter 6-character Save Code:");
+    if (!code) return;
+    
+    setIsCloudLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('datasets')
+        .select('pairs')
+        .eq('save_code', code.toUpperCase())
+        .single();
+        
+      if (error || !data) {
+        alert("Save code not found.");
+      } else {
+        setPairs(data.pairs);
+        setSaveCode(code.toUpperCase());
+        alert("Loaded successfully.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Cloud load failed.");
+    } finally {
+      setIsCloudLoading(false);
+    }
   };
 
   // Validate JSONL: each non-empty line must be valid JSON with instruction & output keys
@@ -141,9 +216,37 @@ function App() {
   return (
     <div className="min-h-screen bg-[#121212] text-[#e0e0e0] p-8 font-mono">
       <div className="max-w-4xl mx-auto space-y-8">
-        <header className="border-b border-[#333] pb-4">
-          <h1 className="text-2xl font-bold tracking-tight text-[#ededed]">LoRA Dataset Generator</h1>
-          <p className="text-sm text-[#888] mt-1">Minimalist interface for dataset creation.</p>
+        <header className="border-b border-[#333] pb-4 flex justify-between items-end">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[#ededed]">LoRA Dataset Generator</h1>
+            <p className="text-sm text-[#888] mt-1">Minimalist interface for dataset creation.</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                placeholder="Save Code" 
+                maxLength={6}
+                value={saveCode}
+                onChange={(e) => setSaveCode(e.target.value.toUpperCase())}
+                className="w-24 bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-xs text-center text-[#e0e0e0] placeholder-[#555] focus:outline-none focus:border-[#666] transition-colors"
+              />
+              <button
+                onClick={handleCloudSave}
+                disabled={isCloudSaving || pairs.length === 0}
+                className="px-3 py-1.5 bg-[#444] text-[#ededed] text-xs font-semibold rounded hover:bg-[#555] transition-colors disabled:opacity-50"
+              >
+                {isCloudSaving ? '...' : 'Cloud Save'}
+              </button>
+            </div>
+            <button
+               onClick={handleCloudLoad}
+               disabled={isCloudLoading}
+               className="px-3 py-1.5 border border-[#333] text-[#aaa] text-xs font-semibold rounded hover:text-[#ededed] hover:border-[#555] transition-colors disabled:opacity-50"
+            >
+              {isCloudLoading ? '...' : 'Cloud Load'}
+            </button>
+          </div>
         </header>
 
         <div className="grid md:grid-cols-2 gap-6 relative">

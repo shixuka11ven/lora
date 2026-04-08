@@ -15,6 +15,7 @@ function App() {
   const [editText, setEditText] = useState('');
   const [syntaxError, setSyntaxError] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [wrapLines, setWrapLines] = useState(true);
   const editRef = useRef(null);
 
   useEffect(() => {
@@ -177,91 +178,111 @@ function App() {
           </button>
         </div>
 
-        {(pairs.length > 0 || editing) && (
-          <div className="space-y-4 pt-8 border-t border-[#333]">
-            <div className="flex justify-between items-end">
-              <div>
-                <h2 className="text-lg font-bold text-[#ededed]">Dataset Preview</h2>
-                <p className="text-xs text-[#888] mt-1">{pairs.length} pair{pairs.length === 1 ? '' : 's'}</p>
-              </div>
-              <div className="flex gap-2 items-center">
-                {/* Edit / Done button */}
-                <button
-                  onClick={editing ? finishEditing : startEditing}
-                  className={`p-2 text-xs border rounded transition-colors flex items-center gap-1.5 ${
-                    editing
-                      ? 'border-emerald-700 text-emerald-400 hover:bg-emerald-900/30'
-                      : 'border-[#333] text-[#aaa] hover:text-[#ededed] hover:border-[#555]'
-                  }`}
-                  title={editing ? 'Save edits' : 'Edit dataset'}
-                >
-                  {editing ? (
-                    <>
-                      <CheckIcon />
-                      <span>Done</span>
-                    </>
-                  ) : (
-                    <>
-                      <EditIcon />
-                      <span>Edit</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={clearDataset}
-                  className="px-4 py-2 text-xs border border-[#333] text-[#aaa] rounded hover:text-red-400 hover:border-[#5a2a2a] transition-colors"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={copyToClipboard}
-                  className="p-2 text-xs bg-[#2a2a2a] text-[#aaa] rounded hover:bg-[#3a3a3a] hover:text-[#ededed] transition-colors"
-                  title="Copy to clipboard"
-                >
-                  {copied ? <CheckIcon /> : <ClipboardIcon />}
-                </button>
-                <button
-                  onClick={handleDownload}
-                  className="px-4 py-2 text-xs bg-[#ededed] text-[#121212] font-semibold rounded hover:bg-white transition-colors"
-                >
-                  Download .jsonl
-                </button>
-              </div>
+        <div className="space-y-4 pt-8 border-t border-[#333]">
+          <div className="flex justify-between items-end">
+            <div>
+              <h2 className="text-lg font-bold text-[#ededed]">Dataset Preview</h2>
+              <p className="text-xs text-[#888] mt-1">{pairs.length} pair{pairs.length === 1 ? '' : 's'}</p>
             </div>
-
-            {editing ? (
-              <textarea
-                ref={editRef}
-                value={editText}
-                onChange={(e) => handleEditChange(e.target.value)}
-                spellCheck={false}
-                className={`w-full bg-[#1a1a1a] border rounded p-4 text-sm font-mono whitespace-pre text-[#a0a0a0] focus:outline-none transition-colors resize-y min-h-[120px] ${
-                  syntaxError
-                    ? 'border-red-500 focus:border-red-500'
-                    : 'border-[#333] focus:border-[#666]'
+            <div className="flex gap-2 items-center">
+              {/* Edit / Done button */}
+              <button
+                onClick={editing ? finishEditing : startEditing}
+                className={`p-2 text-xs border rounded transition-colors flex items-center gap-1.5 ${
+                  editing
+                    ? 'border-emerald-700 text-emerald-400 hover:bg-emerald-900/30'
+                    : 'border-[#333] text-[#aaa] hover:text-[#ededed] hover:border-[#555]'
                 }`}
-              />
-            ) : (
-              <div className="bg-[#1a1a1a] border border-[#333] rounded p-4 overflow-x-auto">
-                <pre className="text-sm font-mono whitespace-pre-wrap break-all text-[#a0a0a0]">
-                  <code>{getJsonlText()}</code>
-                </pre>
-              </div>
-            )}
+                title={editing ? 'Save edits' : 'Edit dataset'}
+              >
+                {editing ? (
+                  <>
+                    <CheckIcon />
+                    <span>Done</span>
+                  </>
+                ) : (
+                  <>
+                    <EditIcon />
+                    <span>Edit</span>
+                  </>
+                )}
+              </button>
 
-            {syntaxError && editing && (
-              <p className="text-xs text-red-400 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
-                Invalid JSONL — each line must be valid JSON with "instruction" and "output" keys.
-              </p>
-            )}
+              {!editing && pairs.length > 0 && (
+                <button
+                  onClick={() => setWrapLines(!wrapLines)}
+                  className="px-3 py-2 text-xs border border-[#333] text-[#aaa] rounded hover:text-[#ededed] hover:border-[#555] transition-colors"
+                >
+                  {wrapLines ? 'Unwrap' : 'Wrap'}
+                </button>
+              )}
+
+              <button
+                onClick={clearDataset}
+                disabled={pairs.length === 0}
+                className="px-4 py-2 text-xs border border-[#333] text-[#aaa] rounded hover:text-red-400 hover:border-[#5a2a2a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Clear All
+              </button>
+              <button
+                onClick={copyToClipboard}
+                disabled={pairs.length === 0}
+                className="p-2 text-xs bg-[#2a2a2a] text-[#aaa] rounded hover:bg-[#3a3a3a] hover:text-[#ededed] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Copy to clipboard"
+              >
+                {copied ? <CheckIcon /> : <ClipboardIcon />}
+              </button>
+              <button
+                onClick={handleDownload}
+                disabled={pairs.length === 0}
+                className="px-4 py-2 text-xs bg-[#ededed] text-[#121212] font-semibold rounded hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Download .jsonl
+              </button>
+            </div>
           </div>
-        )}
+
+          {editing ? (
+            <textarea
+              ref={editRef}
+              value={editText}
+              onChange={(e) => handleEditChange(e.target.value)}
+              spellCheck={false}
+              className={`w-full bg-[#1a1a1a] border rounded p-4 text-sm font-mono whitespace-pre text-[#a0a0a0] focus:outline-none transition-colors resize-y min-h-[120px] ${
+                syntaxError
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-[#333] focus:border-[#666]'
+              }`}
+            />
+          ) : pairs.length === 0 ? (
+            <div className="bg-[#1a1a1a] border border-[#333] rounded p-8 flex flex-col items-center justify-center text-center gap-3 text-[#555]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <line x1="9" y1="9" x2="15" y2="9" />
+                <line x1="9" y1="13" x2="15" y2="13" />
+                <line x1="9" y1="17" x2="15" y2="17" />
+              </svg>
+              <p className="text-sm">No dataset entries yet. Click "Edit" to input manually or use the form above.</p>
+            </div>
+          ) : (
+            <div className="bg-[#1a1a1a] border border-[#333] rounded p-4 overflow-x-auto">
+              <pre className={`text-sm font-mono text-[#a0a0a0] ${wrapLines ? 'whitespace-pre-wrap break-all' : 'whitespace-pre'}`}>
+                <code>{getJsonlText()}</code>
+              </pre>
+            </div>
+          )}
+
+          {syntaxError && editing && (
+            <p className="text-xs text-red-400 flex items-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              Invalid JSONL — each line must be valid JSON with "instruction" and "output" keys.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
